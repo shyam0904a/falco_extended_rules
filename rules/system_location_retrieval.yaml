@@ -1,0 +1,18 @@
+#The given falco rule detects attempts to retrieve system information by monitoring the execution of certain commands. 
+#The rule checks if the event type is 'execve' and if the process name is one of the following: 'ip', 'cat', 'nmcli', 'iw', 'wpa_cli', 'geoiplookup', 'ifconfig', or 'hostname'
+#https://attack.mitre.org/techniques/T1614/
+#Mitre Discovery: system location discovery subscenario
+
+- rule: Detect System Location Information Retrieval
+  desc: Detects attempts to retrieve system information
+  condition: >
+   ( (evt.type=execve) and
+     (
+       proc.name in (ip, cat, nmcli, iw, wpa_cli, geoiplookup, ifconfig, hostname)
+     )
+    )
+  enabled: true
+  output: >
+    System information may be retrieved (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, location, mitre_discovery, system_location_discovery, T1614]

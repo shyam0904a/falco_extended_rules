@@ -1,0 +1,31 @@
+- list: network_tools
+  items: ["nmap", "ping", "dig", "nslookup", "arp"]
+  
+#This is a Falco rule that is designed to detect suspicious network scanning commands. 
+#The rule looks for commands that are commonly used for network scanning activities 
+#and have certain flags or arguments that suggest that the command is being used for malicious purposes.
+#The name of the process matches one of several common network scanning tools, including nmap, ping, dig, nslookup, and arp.
+#The command line arguments passed to the process contain one or more of the following flags or arguments:
+#-sP: sends a Ping Scan to determine which hosts are online.
+#-c: specifies the number of packets to send in a Ping or TCP SYN scan.
+#+short: returns only the IP address for a DNS query instead of the full output.
+#-a: performs a reverse DNS lookup to determine the hostname associated with an IP address.
+#https://attack.mitre.org/techniques/T1018/
+#Mitre Discovery: remote system discovery subscenario
+
+- rule: Suspicious Network Scanning Command
+  desc: Detects suspicious network scanning commands
+  condition:
+    (proc.name=nmap or proc.name=ping or proc.name=dig or
+     proc.name=nslookup or proc.name=arp) and
+    (
+      proc.args contains "-sP" or
+      proc.args contains "-c" or
+      proc.args contains "+short" or
+      proc.args contains "-a"
+    )
+  enabled: true
+  output: Suspicious network scanning command executed
+   (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, network, mitre_discovery, remote_system_discovery, T1018]

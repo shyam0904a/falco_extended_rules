@@ -1,0 +1,25 @@
+- list: system_executables_files
+  items: [/proc/filesystems, /proc/self/stat, /usr/lib/locale/locale-archive, /
+  usr/bin/systemctl]
+- list: system_executables_directories
+  items: [/run/systemd/system, /etc/systemd/system-preset, /usr/lib/systemd/sys
+tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
+
+
+#The given Falco rule is designed to detect any attempt to discover all services running on a system. 
+#The rule is triggered by a newly spawned process or by an attempt to read files from system executable directories or files.
+#https://attack.mitre.org/techniques/T1007/
+#Mitre Discovery: system service discovery subscenario
+
+- rule: System Service Discovery
+  desc: an attempt to discover all services that are running in system
+  condition: >
+    spawned_process
+    or (open_read and (fd.directory in (system_executables_directories)) or
+    (fd.filename in (system_executables_files)))
+  enabled: false
+  output: >
+    A process with process id=%proc.pid is spawned to discover all the system
+    system services present in the system.
+  priority: ERROR
+  tags: [host, container, process, mitre_discovery, system_service_discovery, T1007]

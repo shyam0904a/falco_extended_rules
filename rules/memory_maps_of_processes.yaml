@@ -1,0 +1,15 @@
+#This is a Falco rule that is designed to detect when an attempt is made to read the maps file of a process.
+#The maps file is a file that provides information about the memory mappings of a process.
+#The open_read system call is used to read a file.
+#The name of the file being read matches the glob pattern /proc/*/maps, which means that the file is located in, 
+#the /proc directory and has a name that consists of a numerical process ID followed by the string "maps".
+#https://attack.mitre.org/techniques/T1003/
+#Mitre Credential Access: os credential dumping subscenario
+
+- rule: Read Maps File of Process
+  desc: An attempt to read the maps file of a process was detected
+  condition: open_read and (fd.name glob /proc/*/maps)
+  enabled: true
+  output: Reading maps file of process
+  priority: ERROR
+  tags: [host, container, process, mitre_creential_access, os_credential_dumping, T1003]

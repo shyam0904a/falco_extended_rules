@@ -1,0 +1,17 @@
+#The following rule is designed to detect suspicious commands related to gathering system information.
+#It uses the condition field to check if the command executed matches any of the suspicious commands such as dpkg -l, lsb_release -a, uname -r, or ls -l /usr/bin. 
+#https://attack.mitre.org/techniques/T1518/
+#Mitre Discovery: Software dicovery subsceanrio
+
+- rule: Suspicious System Information Gathering
+  desc: Detects suspicious commands related to gathering system information
+  condition: >
+    (proc.args contains "dpkg -l" or
+     proc.args contains "lsb_release -a" or
+     proc.args contains "uname -r" or
+     proc.args contains "ls -l /usr/bin")
+  enabled: true
+  output: >
+    Suspicious system information gathering detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, data, mitre_discovery, software_discovery, T1518]

@@ -1,0 +1,21 @@
+#This Falco rule is designed to detect attempts to create user accounts or add users to a system.
+#A process has been spawned
+#The name of the process matches one of the user management binaries listed in the configuration (user_mgmt_binaries)
+#The process is not being executed within a container
+#The command line used to execute the process is not excluded by the configuration 
+#https://attack.mitre.org/techniques/T1136/
+#Mitre Persistance: Create account subscenario
+
+- rule: Create Account or Add User
+  desc: >
+    activity by any programs that can manage users, passwords, or permissions. sudo and su are excluded.
+    Activity in containers is also excluded--some containers create custom users on top
+    of a base linux distribution at startup.
+    Some innocuous command lines that don't actually change anything are excluded.
+  condition: >
+    spawned_process and proc.name in (user_mgmt_binaries)
+  enabled: true
+  output: >
+    an user is added or a account is created to get persistance access of system
+  priority: NOTICE
+  tags: [host, container, user, account, mitre_persistance, create_account, T1136]

@@ -1,0 +1,14 @@
+
+#this Falco rule is designed to detect attempts to create or modify system processes on a Linux system,
+#which can be a sign of a malicious actor attempting to maintain persistence on the system.
+#https://attack.mitre.org/techniques/T1543/
+#Mitre Persistance: Create or Modify system process
+#Mitre Priviledge Escalarion: Create or modify system process
+  
+- rule: Create or Modify System Process
+  desc: a system process may be created or a existing process may be modified to keep malicious process running continuously
+  condition: write_etc_common
+  enabled: true
+  output: A malicious system process is created or a existing process is modified to act like a malicious one
+  priority: ERROR
+  tags: [host, container, process, mitre_priviledge_escalation, create_or_modify_system_service, T1543]

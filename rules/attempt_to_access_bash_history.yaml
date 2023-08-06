@@ -1,0 +1,19 @@
+- list: unsec_file
+  items: [.bash_history]
+  
+#This is a Falco rule designed to detect attempts to access the bash history file on a Linux system. 
+#The rule will trigger an alert if it detects an "openat" system call with a file descriptor (fd) that matches the path of the bash history file.
+#The type of event must be an "openat" event, which means a file was opened using an absolute or relative path
+#The path of the file being opened must match the path of the bash history file, which is typically located at "~/.bash_history"
+#The file being opened must be in the list of unsecured files (unsec_file)
+#https://attack.mitre.org/techniques/T1552/
+#Mitre Credential Access : Unsecured credential access subscenario
+  
+- rule: Attempt to Access Bash History File
+  desc: Someone is attempting to access the bash history file
+  condition: evt.type = openat and fd.filename in (unsec_file)
+  enabled: true
+  output: "Access to bash history file (user=%user.name, command=%evt.arg.cmdline)"
+  priority: CRITICAL
+  tags: [host, container, bash, mitre_credential_accesss, unsecured_credential_access, T1552]
+  

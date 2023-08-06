@@ -1,0 +1,14 @@
+  
+#The SuspiciousDiskActivity rule in Falco is designed to detect suspicious disk activity on a system. 
+#The rule matches against processes that are known to be involved in activities such as wiping, overwriting or corrupting raw disk data, 
+#such as dd, shred, hdparm, fdisk, blkdiscard, wipe, badblocks, fsck, parted, and mkfs.ext4.  
+#https://attack.mitre.org/techniques/T1561/
+#Mitre Impact: disk wipe subscenario
+
+- rule: Suspicious Disk Activity
+  desc: Detects suspicious disk activity such as wiping, overwriting or corrupting raw disk data.
+  condition: (proc.name in ("dd", "shred", "hdparm", "fdisk", "blkdiscard", "wipe", "badblocks", "fsck", "parted", "mkfs.ext4"))
+  enabled: true
+  output: "Suspicious disk activity (command=%proc.cmdline) detected"
+  priority: WARNING
+  tags: [host, container, disk, mitre_impact, disk_wipe, T1561]

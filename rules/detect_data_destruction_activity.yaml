@@ -1,0 +1,22 @@
+- list: data_destruction_cmd
+  items: ["shred", "dd", "wipe"]
+  
+#This is a Falco rule that is designed to detect activity related to data destruction, such as file shredding or disk wiping.
+#The rule looks for instances where a specific command is executed or files with certain names are accessed.
+#The evt.type is set to execve, indicating that a process is being executed, and the name of the process matches one of the commands specified in the data_destruction_cmd list.
+#The evt.type is set to openat, indicating that a file is being accessed, and the name of the file being accessed ends with either .shred or .wipe.
+#https://attack.mitre.org/techniques/T1485/
+#Mitre Impact: data destruction for impact subscenario
+  
+- rule: Detect Data Destruction Activity
+  desc: Detects activity related to data destruction,
+   such as file shredding or disk wiping.
+  condition: >
+    (evt.type = execve and proc.name in (data_destruction_cmd)) or
+    (evt.type = openat and fd.name endswith ".shred" or
+     fd.name endswith ".wipe")
+  enabled: true
+  output: >
+    Data destruction activity detected.
+  priority: WARNING
+  tags: [host, container, filesystem, process, mitre_impact, data_destruction_for_impact, T1485]

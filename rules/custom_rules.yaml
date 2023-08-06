@@ -12,7 +12,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1007/
 #Mitre Discovery: system service discovery subscenario
 
-- rule: system service discovery
+- rule: System Service Discovery
   desc: an attempt to discover all services that are running in system
   condition: >
     spawned_process
@@ -23,7 +23,8 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
     A process with process id=%proc.pid is spawned to discover all the system
     system services present in the system.
   priority: ERROR
-  tags: [Mitre_discovery_system_service_discovery]
+  tags: [host, container, process, mitre_discovery, system_service_discovery, T1007]
+  
 - list: ssh_files
   items: [/etc/ssh/sshd_config, /.ssh/authorized_keys]
   
@@ -34,7 +35,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1098/
 #Mitre Discovery: Account Manipulation subscenario
 
-- rule: account_manipulation_in_ssh
+- rule: Account Manipulation in SSH
   desc: an attempt to do account manipulation using ssh
 
   condition: >
@@ -45,7 +46,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
     A process with process id=%proc.pid is spawned to do account manipulation
     at ssh_files
   priority: ERROR
-  tags: [mitre account_manipulation]
+  tags: [host, container, account, mitre_discovery, account_manipulation, T1098]
   
 #This is a Falco rule that is designed to detect when an attempt is made to read the maps file of a process.
 #The maps file is a file that provides information about the memory mappings of a process.
@@ -55,13 +56,14 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1003/
 #Mitre Credential Access: os credential dumping subscenario
 
-- rule: Read maps file of process
+- rule: Read Maps File of Process
   desc: An attempt to read the maps file of a process was detected
   condition: open_read and (fd.name glob /proc/*/maps)
   enabled: true
   output: Reading maps file of process
   priority: ERROR
-  tags: [os_credential_dumping]
+  tags: [host, container, process, mitre_creential_access, os_credential_dumping, T1003]
+  
 - list: network_tools
   items: ["nmap", "ping", "dig", "nslookup", "arp"]
   
@@ -88,9 +90,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
       proc.args contains "+short" or
       proc.args contains "-a"
     )
+  enabled: true
   output: Suspicious network scanning command executed
    (user=%user.name command=%proc.cmdline)
   priority: WARNING
+  tags: [host, container, network, mitre_discovery, remote_system_discovery, T1018]
   
 #This is a Falco rule that is designed to detect chown or chmod operations on a system.
 #The rule looks for instances where the chown or chmod command is executed using the execve system call.
@@ -103,9 +107,12 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
   desc: Detects chown or chmod operations
   condition: (evt.type = execve and
               (proc.name = chown or proc.name = chmod))
+  enabled: true
   output: "Chown or chmod operation detected
    (user=%user.name command=%proc.cmdline)"
   priority: WARNING
+  tags: [host, container, permission, file, directory, mitre_defense_evasion, file_and_directory_permission_modification, T1222]
+  
 - list: groups
   items: [/etc/group]
 - list: critical_files
@@ -119,15 +126,17 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1069/
 #Mitre Discovery: permission groups discovery
 
-- rule: permission and group members discovery
+- rule: Permission and Group Members Discovery
   desc: rule to detect permission of files and group and its group members
   condition: >
     (open_read and (fd.name in (groups))) or
     (evt.type = stat and (fd.filename in (critical_files)))
-  enabled: false
+  enabled: true
   output: suspicious process is spawwned to check file permissions
    and group members.
   priority: ERROR
+  tags: [host, container, permission, group, mitre_discovery, permission_groups_discovery, T1069]
+  
 - list: data_destruction_cmd
   items: ["shred", "dd", "wipe"]
   
@@ -138,17 +147,18 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1485/
 #Mitre Impact: data destruction for impact subscenario
   
-- rule: Detect data destruction activity
+- rule: Detect Data Destruction Activity
   desc: Detects activity related to data destruction,
    such as file shredding or disk wiping.
   condition: >
     (evt.type = execve and proc.name in (data_destruction_cmd)) or
     (evt.type = openat and fd.name endswith ".shred" or
      fd.name endswith ".wipe")
+  enabled: true
   output: >
     Data destruction activity detected.
   priority: WARNING
-  tags: [filesystem, process]
+  tags: [host, container, filesystem, process, mitre_impact, data_destruction_for_impact, T1485]
   
 #This is a Falco rule that is designed to detect archive and compression activity using popular tools like tar, zip, gzip, and bzip2.
 #The rule looks for instances where these commands are being used to create or extract compressed archives.
@@ -158,17 +168,21 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #If the process name is "bzip2" and the event direction is "<", indicating that files are being compressed with bzip2.
 #https://attack.mitre.org/techniques/T1560/
 #Mitre collection: Archive collected data subscenario
+- list: encryption_proc
+  items: ["zip", "tar", "gzip", "bzip2"]
  
 - rule: Archive and Compression Activity
   desc: Detects archive and compression activity using tar, zip, gzip, and bzip2.
   condition: >
-    (proc.name = "zip" and evt.dir = "<") or 
-    (proc.name = "tar" and (evt.arg[1] = "-czf" or evt.arg[1] = "-cpf"))
-    or (proc.name = "gzip" and evt.dir = "<")
-    or (proc.name = "bzip2" and evt.dir = "<")
-  output:
-    "Archive and compression activity detected (user=%user.name command=%proc.cmdline file=%evt.arg[2] or %evt.arg[1])"
+    spawned_process and 
+    ((proc.name in (encryption_proc)) and
+    (evt.dir = "<" or evt.arg[1] = "-czf" or evt.arg[1] = "-cpf"))
+  enabled: true
+  output: >
+    "Archive and compression activity detected (proc.cmdline=%proc.cmdline connection=%fd.name user.name=%user.name user.loginuid=%user.loginuid container.id=%container.id evt.type=%evt.type     evt.res=%evt.res proc.pid=%proc.pid proc.cwd=%proc.cwd proc.ppid=%proc.ppid proc.pcmdline=%proc.pcmdline proc.sid=%proc.sid proc.exepath=%proc.exepath user.uid=%user.uid user.loginname=%user.loginname group.gid=%group.gid group.name=%group.name container.name=%container.name image=%container.image.repository)"
   priority: WARNING
+  tags: [host, container, data, mitre_collection, archive_collected_data, T1560]
+  
 - list: device_enumeration
   items: ["lsusb", "lspci", "dmesg", "lsblk", "lshw", "hwinfo"]
   
@@ -179,7 +193,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1120/
 #Mitre Discovery: Peripheral Device Discovery subscenario
   
-- rule: Detect peripheral device enumeration commands
+- rule: Detect Peripheral Device Enumeration Commands
   desc: Detects if someone runs commands that enumerate peripheral devices.
   condition: >
     spawned_process and
@@ -192,9 +206,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
       proc.cmdline contains "lshw" or
       proc.cmdline contains "hwinfo"
     )
+  enabled: true
   output: >
     Peripheral device enumeration command detected.
   priority: WARNING
+  tags: [host, container, device, hardware, mitre_discovery, peripheral_device_discovery, T1120]
   
 #This Falco rule is designed to detect when a non-root user disables a service using the systemctl command. 
 #The rule checks if the process name is systemctl, the arguments contain the string disable, and if the arguments also contain the .service string.
@@ -203,29 +219,19 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1489/
 #Mitre Impact: service stop subscenario
   
-- rule: Detect service disable using systemctl
+- rule: Detect Service Disable Using Systemctl
   desc: Detects when a user disables a service using the systemctl command.
   condition: >
     proc.name = "systemctl" and
     proc.args contains "disable" and
     proc.args contains ".service" and
     user.name != "root"
+  enabled: true 
   output: >
     Service disable using systemctl detected.
   priority: WARNING
+  tags: [host, container, service, process, mitre_impact, service_stop, T1489]
   
-#The rule  provided is designed to detect the use of the "systemctl" command with the argument "list-units",
-#which is used to list the running services on a Linux system.
-#The rule will trigger an alert when it detects a process with the name "systemctl" and the "list-units" argument running on the system
-
-- rule: List running services using systemctl
-  desc: Detects the use of systemctl to list running services
-  condition: >
-    (proc.name = "systemctl" and
-    (proc.args contains "list-units"))
-  enabled: true
-  output: "User '%user.name' used 'systemctl' to list running services"
-  priority: ERROR
   
 #This is a Falco rule designed to detect an attempt to create a NodePort service in a Kubernetes cluster.
 #The rule will trigger an alert if it detects a Kubernetes API server event related to creating a NodePort service.
@@ -238,10 +244,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
   desc: >
     Detect an attempt to start a service with a NodePort service type
   condition: kevt and service and kcreate and ka.req.service.type=NodePort
+  enabled: true
   output: NodePort Service Created (user=%ka.user.name service=%ka.target.name ns=%ka.target.namespace ports=%ka.req.service.ports)
   priority: WARNING
   source: k8s_audit
-  tags: [k8s]
+  tags: [k8s, nodeport]
   
 #This is a Falco rule designed to detect suspicious command execution related to time, date, and region information.
 #The rule will trigger an alert if it detects the execution of certain commands that may be used to gather such information.
@@ -254,8 +261,102 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 - rule: Suspicious Time and Date Command Execution
   desc: Detects the execution of commands that may be used to gather time, date, and region information
   condition: evt.type = execve and evt.dir = < and (proc.name = "date" or proc.name = "timedatectl" or proc.name = "locale" or proc.name = "hostnamectl")
+  enabled: true
   output: "Suspicious time and date command executed: user=%user.name pid=%proc.pid ppid=%proc.ppid exe=%proc.exepath cmdline=%proc.cmdline"
   priority: WARNING
+  tags: [host, container, time, date, mitre_discovery, system_time_discovery, T1124]
+  
+#This Falco rule is designed to detect the execution of commands that read disk blocks. 
+#The rule starts by creating a list of commands that are known to read disk blocks, which includes dd, hdparm, readsector, and ddrescue
+#https://attack.mitre.org/techniques/T1006/
+#Mitre Defense evasion: direct volume acccess subscenarrio
+
+- list: disk_read
+  items: ['dd', 'hdparm', 'readsector', 'ddrescue']
+
+- rule: Read Disk Block Command
+  desc: Detects execution of commands that read disk blocks
+  condition: >
+    proc.name in (disk_read)
+  enabled: true
+  output: >
+    Read disk block command detected (user=%user.name command=%proc.cmdline)
+  priority: ERROR
+  tags: [host, container, disk, mitre_defense_evasion, direct_volume_access, T1006]
+
+#This Falco rule is designed to detect the execution of commands via commonly used utilities such as awk, sed, grep, Python, 
+#Perl, Bash, cron, systemd-timer, and atd on a Linux system. 
+#The rule checks for the execve event type and then looks for the presence of these utilities either in the proc.name field or in the proc.cmdline field. 
+#https://attack.mitre.org/techniques/T1202/
+#Mitre Defense Evasion: indirect command execution subscenario
+
+- list: other_utilities
+  items: [awk, sed, grep, python, perl, bash, cron, systemd-timer, atd]
+  
+- rule: Execute Command Via Utility
+  desc: Detects execution of commands via utilities commonly used to parse text, scripting languages, and system utilities
+  condition: >
+    (evt.type = execve and
+     (proc.name in (other_utilities) or
+      proc.cmdline contains awk or
+      proc.cmdline contains sed or
+      proc.cmdline contains grep or
+      proc.cmdline contains python or
+      proc.cmdline contains perl or
+      proc.cmdline contains bash or
+      proc.cmdline contains cron or
+      proc.cmdline contains systemd-timer or
+      proc.cmdline contains atd))
+  enabled: true
+  output: >
+    Command executed via utility detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, command, mitre_defense_evasion, indirect_command_execution, T1202]
+  
+#The above Falco rule set detects attempts to enumerate domain trusts in Linux systems using specific commands, such as ldapsearch, net, and rpcclient.
+#The process name is one of the commands listed in the domain_trust_commands list OR
+#The process command-line contains the string ldapsearch OR
+#The process command-line contains the string net OR
+#The process command-line contains the string rpcclient
+#https://attack.mitre.org/techniques/T1482/
+#Mitre Discovery: domain trust discovery subscenario
+
+- list: domain_trust_commands
+  items: [ldapsearch, net, rpcclient]
+  
+- rule: Enumerate Domain Trusts
+  desc: Detects attempts to enumerate domain trusts in Linux systems
+  condition: >
+    (proc.name in (domain_trust_commands) or
+    proc.cmdline contains "ldapsearch" or
+    proc.cmdline contains "net" or
+    proc.cmdline contains "rpcclient")
+  enabled: true
+  output: >
+    Domain trust enumeration attempt detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, mitre_discovery, domain_trust_discovery, T1482]
+  
+#The given falco rule detects attempts to retrieve system information by monitoring the execution of certain commands. 
+#The rule checks if the event type is 'execve' and if the process name is one of the following: 'ip', 'cat', 'nmcli', 'iw', 'wpa_cli', 'geoiplookup', 'ifconfig', or 'hostname'
+#https://attack.mitre.org/techniques/T1614/
+#Mitre Discovery: system location discovery subscenario
+
+- rule: Detect System Location Information Retrieval
+  desc: Detects attempts to retrieve system information
+  condition: >
+   ( (evt.type=execve) and
+     (
+       proc.name in (ip, cat, nmcli, iw, wpa_cli, geoiplookup, ifconfig, hostname)
+     )
+    )
+  enabled: true
+  output: >
+    System information may be retrieved (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, location, mitre_discovery, system_location_discovery, T1614]
+
+
 - list: unsec_file
   items: [.bash_history]
   
@@ -267,11 +368,90 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1552/
 #Mitre Credential Access : Unsecured credential access subscenario
   
-- rule: Attempt to access bash history file
+- rule: Attempt to Access Bash History File
   desc: Someone is attempting to access the bash history file
   condition: evt.type = openat and fd.filename in (unsec_file)
+  enabled: true
   output: "Access to bash history file (user=%user.name, command=%evt.arg.cmdline)"
   priority: CRITICAL
+  tags: [host, container, bash, mitre_credential_accesss, unsecured_credential_access, T1552]
+  
+#The falco rule "Get info about open windows" is designed to detect attempts to get information 
+#about open application windows by monitoring specific commands such as "xwininfo", "wmctrl", "xprop",
+#"xlsclients", "xdotool", "xrestop", "xwininfo", "xdpyinfo", "glxinfo", "xrandr", "xset", "xdriinfo", "xhost", "xev", "xdotool", and "xsetroot".
+#https://attack.mitre.org/techniques/T1010/
+#Mitre Discovery: application window discovery subscenario 
+ 
+- rule: Get Information About Open Application Windows
+  desc: Detects attempts to get information about open application windows
+  condition: > 
+    proc.name in ("xwininfo", "wmctrl", "xprop", "xlsclients", "xdotool", "xrestop", "xwininfo", "xdpyinfo", "glxinfo", "xrandr", "xset", "xdriinfo", "xhost", "xev", "xdotool", "xsetroot")
+  enabled: true
+  output: "Get info about open windows in system detected (proc.cmdline=%proc.cmdline connection=%fd.name user.name=%user.name user.loginuid=%user.loginuid container.id=%container.id evt.type=%evt.type     evt.res=%evt.res proc.pid=%proc.pid proc.cwd=%proc.cwd proc.ppid=%proc.ppid proc.pcmdline=%proc.pcmdline proc.sid=%proc.sid proc.exepath=%proc.exepath user.uid=%user.uid user.loginname=%user.loginname group.gid=%group.gid group.name=%group.name container.name=%container.name image=%container.image.repository)"
+  priority: WARNING
+  tags: [host, container, process, mitre_discovery, application_window_discovery, T1010]
+ 
+#The following rule is designed to detect suspicious commands related to gathering system information.
+#It uses the condition field to check if the command executed matches any of the suspicious commands such as dpkg -l, lsb_release -a, uname -r, or ls -l /usr/bin. 
+#https://attack.mitre.org/techniques/T1518/
+#Mitre Discovery: Software dicovery subsceanrio
+
+- rule: Suspicious System Information Gathering
+  desc: Detects suspicious commands related to gathering system information
+  condition: >
+    (proc.args contains "dpkg -l" or
+     proc.args contains "lsb_release -a" or
+     proc.args contains "uname -r" or
+     proc.args contains "ls -l /usr/bin")
+  enabled: true
+  output: >
+    Suspicious system information gathering detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, data, mitre_discovery, software_discovery, T1518]
+  
+#The given rule is designed to detect suspicious activities related to disabling system recovery features. 
+#The rule looks for specific commands being executed such as rm -rf, chattr +i, mkfs.ext4 -E nodiscard, mount remount,ro, 
+#and disabling certain services such as systemd-backlight@.service, apport.service, rescue.service, emergency.service, and recovery-mode.service. 
+#https://attack.mitre.org/techniques/T1490/
+#Mitre Impact: Inhibit system recovery
+- list: recovery_files
+  items: [/etc/default/grub, /etc/inittab, /usr/lib/systemd/system/rescue.service]
+  
+- list: critical_dir
+  items: [/boot, /bin, /etc, /lib, /sbin, /usr, ~/.local/share/Trash, ~/.local/share/Trash/files]
+  
+- list: recovery_proc_args
+  items: ["disable systemd-backlight@.service", "disable apport.service", "disable rescue.service", "disable emergency.service", "disable recovery-mode.service"]
+
+- rule: Disable Recovery Features
+  desc: Detects disabling system recovery features by deleting or disabling services and commands.
+  condition: >
+      (spawned_process) and 
+      ((proc.name = "chattr" and proc.args contains "+i") or
+      (proc.name = "mkfs.ext4" and proc.args contains "-E nodiscard") or
+      (proc.name = "mount" and proc.args contains "remount,ro") or
+      (proc.name = "systemctl" and proc.args in (recovery_proc_args)) or
+      (open_write and fd.name in (recovery_files)) or
+      (remove and (fd.name pmatch (critical_dir))))
+  enabled: true
+  output: command related to Disabling recovery features so that system becomes non recoverable in case of failure is executed .(user=%user.name user_loginuid=%user.loginuid
+    command=%proc.cmdline pid=%proc.pid file=%fd.name parent=%proc.pname pcmdline=%proc.pcmdline container_id=%container.id image=%container.image.repository)"
+  priority: CRITICAL
+  tags: [host, container, recovery, mitre_impact, inhibit_system_recovery, T1490]
+  
+#The SuspiciousDiskActivity rule in Falco is designed to detect suspicious disk activity on a system. 
+#The rule matches against processes that are known to be involved in activities such as wiping, overwriting or corrupting raw disk data, 
+#such as dd, shred, hdparm, fdisk, blkdiscard, wipe, badblocks, fsck, parted, and mkfs.ext4.  
+#https://attack.mitre.org/techniques/T1561/
+#Mitre Impact: disk wipe subscenario
+
+- rule: Suspicious Disk Activity
+  desc: Detects suspicious disk activity such as wiping, overwriting or corrupting raw disk data.
+  condition: (proc.name in ("dd", "shred", "hdparm", "fdisk", "blkdiscard", "wipe", "badblocks", "fsck", "parted", "mkfs.ext4"))
+  enabled: true
+  output: "Suspicious disk activity (command=%proc.cmdline) detected"
+  priority: WARNING
+  tags: [host, container, disk, mitre_impact, disk_wipe, T1561]
   
 #This Falco rule is designed to detect attempts to embed a script to execute at the time of boot or logon on a Linux system.
 #The rule will trigger an error priority alert if it detects any write access to the commonly used /etc directory,
@@ -279,13 +459,14 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1547/
 #Mitre Persistance: boot or logon autostart execution subscenario
   
-- rule: Boot or logon autostart execution
+- rule: Boot or Logon Autostart Execution
   desc: an attempt to embedd a script to execute at the time of boot or logon
   condition: write_etc_common
+  enabled: true
   output: A script is embedded below /etc to start its execution on boot or logon in to the system 
   priority: ERROR
-
-
+  tags: [host, container, process, mitre_persistance, boot_or_logon_autostart_execution, T1547]
+  
 #This Falco rule is designed to detect attempts to create user accounts or add users to a system.
 #A process has been spawned
 #The name of the process matches one of the user management binaries listed in the configuration (user_mgmt_binaries)
@@ -294,7 +475,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1136/
 #Mitre Persistance: Create account subscenario
 
-- rule: Create account or add user
+- rule: Create Account or Add User
   desc: >
     activity by any programs that can manage users, passwords, or permissions. sudo and su are excluded.
     Activity in containers is also excluded--some containers create custom users on top
@@ -302,9 +483,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
     Some innocuous command lines that don't actually change anything are excluded.
   condition: >
     spawned_process and proc.name in (user_mgmt_binaries)
+  enabled: true
   output: >
     an user is added or a account is created to get persistance access of system
   priority: NOTICE
+  tags: [host, container, user, account, mitre_persistance, create_account, T1136]
 
 #this Falco rule is designed to detect attempts to create or modify system processes on a Linux system,
 #which can be a sign of a malicious actor attempting to maintain persistence on the system.
@@ -312,11 +495,13 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #Mitre Persistance: Create or Modify system process
 #Mitre Priviledge Escalarion: Create or modify system process
   
-- rule: Create or modify system process
+- rule: Create or Modify System Process
   desc: a system process may be created or a existing process may be modified to keep malicious process running continuously
   condition: write_etc_common
+  enabled: true
   output: A malicious system process is created or a existing process is modified to act like a malicious one
   priority: ERROR
+  tags: [host, container, process, mitre_priviledge_escalation, create_or_modify_system_service, T1543]
 
 #system, which can be a sign of an attacker attempting to steal credentials.
 #The conditions for the rule to trigger are specified in the condition field, 
@@ -325,7 +510,7 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1555/
 #Mitre Credential Access: Credential from password stores
 
-- rule: Credentials from password file
+- rule: Credentials From Password File
   desc: >
     activity by any programs that can manage users, passwords, or permissions. sudo and su are excluded.
     Activity in containers is also excluded--some containers create custom users on top
@@ -333,9 +518,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
     Some innocuous command lines that don't actually change anything are excluded.
   condition: >
     spawned_process and proc.name in (user_mgmt_binaries)
+  enabled: true
   output: >
     An attempt is made to access password file present on system to get credential access
-  priority: NOTICE 
+  priority: NOTICE
+  tags: [host, container, credentials, mitre_credential_access, credentials_from_password_stores, T1555] 
 
 #This Falco rule detects attempts to modify the authentication process by reading sensitive files that 
 #contain user/password/authentication information by non-trusted programs. The condition checks for any read 
@@ -350,9 +537,11 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
   condition: >
     sensitive_files and open_read
     and proc_name_exists
+  enabled: true
   output: >
     Sensitive file opened for reading by non-trusted program  to modify the authentication process
   priority: WARNING
+  tags: [host, container]
 
 #This Falco rule detects an attempt to inject code into a process using PTRACE.
 #The condition checks for a PTRACE event of type ptrace, with direction greater than, 
@@ -361,11 +550,13 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1055/
 #Mitre Priviledge Escalation: Process Injection
 
-- rule: process injection
+- rule: Process Injection
   desc: "This rule detects an attempt to inject code into a process using PTRACE."
   condition: evt.type=ptrace and evt.dir=> and evt.arg.request in (5, 6, 11, 20, 27) and proc_name_exists and not known_ptrace_procs
+  enabled: true
   output: A process is injected in to a known process binary to execute
   priority: WARNING
+  tags: [host, container, process, mitre_priviledge_escalation, process_injection, T1055]
   
 #This falco rule detects an attempt to read sensitive files, 
 #such as files containing user/password/authentication information, by a non-trusted program to discover information about the password policy of a system. 
@@ -373,13 +564,15 @@ tem-preset, /run/systemd/system-preset, /usr/local/lib/systemd/system-preset]
 #https://attack.mitre.org/techniques/T1201/
 #Mitre Discovery: password policy discovery subscenario
  
-- rule: password policy discovery
+- rule: Password Policy Discovery
   desc: >
     an attempt to read any sensitive file (e.g. files containing user/password/authentication
     information). Exceptions are made for known trusted programs.
   condition: >
     sensitive_files and open_read
     and proc_name_exists
+  enabled: true
   output: >
     Sensitive file opened for reading by non-trusted program  to get information about set password policy of a system
   priority: WARNING
+  tags: [host, container, authentication, mitre_discovery, password_policy_discovery, T1201]
