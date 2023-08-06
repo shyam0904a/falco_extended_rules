@@ -1,0 +1,22 @@
+- list: ssh_files
+  items: [/etc/ssh/sshd_config, /.ssh/authorized_keys]
+  
+#The given Falco rule is designed to detect any attempt to perform account manipulation using SSH.
+#The rule is triggered when a process attempts to read or write files that are related to SSH.  
+#The "condition" parameter of the rule uses the "open_read" and "open_write" system calls to monitor attempts to read from or write to files respectively.
+#The "fd.name" parameter specifies the name of the files that should be monitored, which are related to SSH in this case.
+#https://attack.mitre.org/techniques/T1098/
+#Mitre Discovery: Account Manipulation subscenario
+
+- rule: Account Manipulation in SSH
+  desc: an attempt to do account manipulation using ssh
+
+  condition: >
+    ((open_read and (fd.name in (ssh_files)))
+    or (open_write and (fd.name in (ssh_files))))
+  enabled: true
+  output: >
+    A process with process id=%proc.pid is spawned to do account manipulation
+    at ssh_files
+  priority: ERROR
+  tags: [host, container, account, mitre_discovery, account_manipulation, T1098]

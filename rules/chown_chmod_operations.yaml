@@ -1,0 +1,16 @@
+#This is a Falco rule that is designed to detect chown or chmod operations on a system.
+#The rule looks for instances where the chown or chmod command is executed using the execve system call.
+#The evt.type is set to execve, indicating that a process is being executed.
+#The name of the process being executed matches either chown or chmod.
+#https://attack.mitre.org/techniques/T1222/
+#Mitre Defense Evasion: file and directory permission modification
+  
+- rule: Chown or Chmod Operation
+  desc: Detects chown or chmod operations
+  condition: (evt.type = execve and
+              (proc.name = chown or proc.name = chmod))
+  enabled: true
+  output: "Chown or chmod operation detected
+   (user=%user.name command=%proc.cmdline)"
+  priority: WARNING
+  tags: [host, container, permission, file, directory, mitre_defense_evasion, file_and_directory_permission_modification, T1222]

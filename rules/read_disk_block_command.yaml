@@ -1,0 +1,17 @@
+#This Falco rule is designed to detect the execution of commands that read disk blocks. 
+#The rule starts by creating a list of commands that are known to read disk blocks, which includes dd, hdparm, readsector, and ddrescue
+#https://attack.mitre.org/techniques/T1006/
+#Mitre Defense evasion: direct volume acccess subscenarrio
+
+- list: disk_read
+  items: ['dd', 'hdparm', 'readsector', 'ddrescue']
+
+- rule: Read Disk Block Command
+  desc: Detects execution of commands that read disk blocks
+  condition: >
+    proc.name in (disk_read)
+  enabled: true
+  output: >
+    Read disk block command detected (user=%user.name command=%proc.cmdline)
+  priority: ERROR
+  tags: [host, container, disk, mitre_defense_evasion, direct_volume_access, T1006]

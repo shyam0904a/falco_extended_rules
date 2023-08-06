@@ -1,0 +1,24 @@
+  
+#The above Falco rule set detects attempts to enumerate domain trusts in Linux systems using specific commands, such as ldapsearch, net, and rpcclient.
+#The process name is one of the commands listed in the domain_trust_commands list OR
+#The process command-line contains the string ldapsearch OR
+#The process command-line contains the string net OR
+#The process command-line contains the string rpcclient
+#https://attack.mitre.org/techniques/T1482/
+#Mitre Discovery: domain trust discovery subscenario
+
+- list: domain_trust_commands
+  items: [ldapsearch, net, rpcclient]
+  
+- rule: Enumerate Domain Trusts
+  desc: Detects attempts to enumerate domain trusts in Linux systems
+  condition: >
+    (proc.name in (domain_trust_commands) or
+    proc.cmdline contains "ldapsearch" or
+    proc.cmdline contains "net" or
+    proc.cmdline contains "rpcclient")
+  enabled: true
+  output: >
+    Domain trust enumeration attempt detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, mitre_discovery, domain_trust_discovery, T1482]

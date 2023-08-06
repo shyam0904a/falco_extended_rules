@@ -1,0 +1,15 @@
+#This is a Falco rule designed to detect suspicious command execution related to time, date, and region information.
+#The rule will trigger an alert if it detects the execution of certain commands that may be used to gather such information.
+#The type of event must be an "execve" event, which means a process was executed
+#The direction of the event must be "<", which means the process was executed by the shell (as opposed to being spawned by another process)
+#The name of the process must match one of the following: "date", "timedatectl", "locale", or "hostnamectl"
+#https://attack.mitre.org/techniques/T1124/
+#Mitre Discovery: System time discovery subscenario
+  
+- rule: Suspicious Time and Date Command Execution
+  desc: Detects the execution of commands that may be used to gather time, date, and region information
+  condition: evt.type = execve and evt.dir = < and (proc.name = "date" or proc.name = "timedatectl" or proc.name = "locale" or proc.name = "hostnamectl")
+  enabled: true
+  output: "Suspicious time and date command executed: user=%user.name pid=%proc.pid ppid=%proc.ppid exe=%proc.exepath cmdline=%proc.cmdline"
+  priority: WARNING
+  tags: [host, container, time, date, mitre_discovery, system_time_discovery, T1124]

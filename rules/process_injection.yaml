@@ -1,0 +1,14 @@
+#This Falco rule detects an attempt to inject code into a process using PTRACE.
+#The condition checks for a PTRACE event of type ptrace, with direction greater than, 
+#and with the request argument set to one of the specified values (5, 6, 11, 20, 27). 
+#Additionally, the condition checks if the process name exists and is not in the list of known ptrace processes. 
+#https://attack.mitre.org/techniques/T1055/
+#Mitre Priviledge Escalation: Process Injection
+
+- rule: Process Injection
+  desc: "This rule detects an attempt to inject code into a process using PTRACE."
+  condition: evt.type=ptrace and evt.dir=> and evt.arg.request in (5, 6, 11, 20, 27) and proc_name_exists and not known_ptrace_procs
+  enabled: true
+  output: A process is injected in to a known process binary to execute
+  priority: WARNING
+  tags: [host, container, process, mitre_priviledge_escalation, process_injection, T1055]

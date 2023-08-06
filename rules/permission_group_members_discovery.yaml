@@ -1,0 +1,23 @@
+- list: groups
+  items: [/etc/group]
+- list: critical_files
+  items: [/etc/group, /etc/passwd, /etc/shadow, /etc/sudoers]
+  
+#This is a Falco rule that is designed to detect processes that attempt to discover the permissions of files and groups,
+# including the group members. The rule looks for processes that read group files or attempt to get information about critical files.
+#The open_read system call is used to read a file, and the name of the file matches one of the group files specified in the groups list.
+#The evt.type is set to stat, indicating that a process is querying file metadata,
+#and the name of the file being queried matches one of the critical files specified in the critical_files list.
+#https://attack.mitre.org/techniques/T1069/
+#Mitre Discovery: permission groups discovery
+
+- rule: Permission and Group Members Discovery
+  desc: rule to detect permission of files and group and its group members
+  condition: >
+    (open_read and (fd.name in (groups))) or
+    (evt.type = stat and (fd.filename in (critical_files)))
+  enabled: true
+  output: suspicious process is spawwned to check file permissions
+   and group members.
+  priority: ERROR
+  tags: [host, container, permission, group, mitre_discovery, permission_groups_discovery, T1069]

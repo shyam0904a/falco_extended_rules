@@ -1,0 +1,19 @@
+#This Falco rule is designed to detect when a non-root user disables a service using the systemctl command. 
+#The rule checks if the process name is systemctl, the arguments contain the string disable, and if the arguments also contain the .service string.
+#If all conditions are met, the rule triggers and generates an alert with a warning priority, 
+#indicating that a service disable operation using systemctl has been detected.
+#https://attack.mitre.org/techniques/T1489/
+#Mitre Impact: service stop subscenario
+  
+- rule: Detect Service Disable Using Systemctl
+  desc: Detects when a user disables a service using the systemctl command.
+  condition: >
+    proc.name = "systemctl" and
+    proc.args contains "disable" and
+    proc.args contains ".service" and
+    user.name != "root"
+  enabled: true 
+  output: >
+    Service disable using systemctl detected.
+  priority: WARNING
+  tags: [host, container, service, process, mitre_impact, service_stop, T1489]

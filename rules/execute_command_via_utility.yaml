@@ -1,0 +1,28 @@
+#This Falco rule is designed to detect the execution of commands via commonly used utilities such as awk, sed, grep, Python, 
+#Perl, Bash, cron, systemd-timer, and atd on a Linux system. 
+#The rule checks for the execve event type and then looks for the presence of these utilities either in the proc.name field or in the proc.cmdline field. 
+#https://attack.mitre.org/techniques/T1202/
+#Mitre Defense Evasion: indirect command execution subscenario
+
+- list: other_utilities
+  items: [awk, sed, grep, python, perl, bash, cron, systemd-timer, atd]
+  
+- rule: Execute Command Via Utility
+  desc: Detects execution of commands via utilities commonly used to parse text, scripting languages, and system utilities
+  condition: >
+    (evt.type = execve and
+     (proc.name in (other_utilities) or
+      proc.cmdline contains awk or
+      proc.cmdline contains sed or
+      proc.cmdline contains grep or
+      proc.cmdline contains python or
+      proc.cmdline contains perl or
+      proc.cmdline contains bash or
+      proc.cmdline contains cron or
+      proc.cmdline contains systemd-timer or
+      proc.cmdline contains atd))
+  enabled: true
+  output: >
+    Command executed via utility detected (user=%user.name command=%proc.cmdline)
+  priority: WARNING
+  tags: [host, container, command, mitre_defense_evasion, indirect_command_execution, T1202]

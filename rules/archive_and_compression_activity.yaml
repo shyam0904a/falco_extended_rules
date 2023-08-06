@@ -1,0 +1,22 @@
+#This is a Falco rule that is designed to detect archive and compression activity using popular tools like tar, zip, gzip, and bzip2.
+#The rule looks for instances where these commands are being used to create or extract compressed archives.
+#If the process name is "zip" and the event direction is "<", indicating that files are being added to a zip archive.
+#If the process name is "tar" and the second argument is set to either "-czf" or "-cpf", indicating that files are being compressed and added to a tar archive.
+#If the process name is "gzip" and the event direction is "<", indicating that files are being compressed with gzip.
+#If the process name is "bzip2" and the event direction is "<", indicating that files are being compressed with bzip2.
+#https://attack.mitre.org/techniques/T1560/
+#Mitre collection: Archive collected data subscenario
+- list: encryption_proc
+  items: ["zip", "tar", "gzip", "bzip2"]
+ 
+- rule: Archive and Compression Activity
+  desc: Detects archive and compression activity using tar, zip, gzip, and bzip2.
+  condition: >
+    spawned_process and 
+    ((proc.name in (encryption_proc)) and
+    (evt.dir = "<" or evt.arg[1] = "-czf" or evt.arg[1] = "-cpf"))
+  enabled: true
+  output: >
+    "Archive and compression activity detected (proc.cmdline=%proc.cmdline connection=%fd.name user.name=%user.name user.loginuid=%user.loginuid container.id=%container.id evt.type=%evt.type     evt.res=%evt.res proc.pid=%proc.pid proc.cwd=%proc.cwd proc.ppid=%proc.ppid proc.pcmdline=%proc.pcmdline proc.sid=%proc.sid proc.exepath=%proc.exepath user.uid=%user.uid user.loginname=%user.loginname group.gid=%group.gid group.name=%group.name container.name=%container.name image=%container.image.repository)"
+  priority: WARNING
+  tags: [host, container, data, mitre_collection, archive_collected_data, T1560]

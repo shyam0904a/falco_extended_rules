@@ -1,0 +1,28 @@
+- list: device_enumeration
+  items: ["lsusb", "lspci", "dmesg", "lsblk", "lshw", "hwinfo"]
+  
+#This Falco rule detects if someone runs commands that enumerate peripheral devices.
+# It does this by checking if a process is spawned and its name is in a predefined list of commands that enumerate peripheral devices, 
+#or if its command line contains specific keywords such as "lsusb", "lspci", "dmesg", "lsblk", "lshw", or "hwinfo". If the condition is met, 
+#the rule generates an alert with a warning priority indicating that a peripheral device enumeration command has been detected.
+#https://attack.mitre.org/techniques/T1120/
+#Mitre Discovery: Peripheral Device Discovery subscenario
+  
+- rule: Detect Peripheral Device Enumeration Commands
+  desc: Detects if someone runs commands that enumerate peripheral devices.
+  condition: >
+    spawned_process and
+    (
+      proc.name in (device_enumeration) or
+      proc.cmdline contains "lsusb" or
+      proc.cmdline contains "lspci" or
+      proc.cmdline contains "dmesg" or
+      proc.cmdline contains "lsblk" or
+      proc.cmdline contains "lshw" or
+      proc.cmdline contains "hwinfo"
+    )
+  enabled: true
+  output: >
+    Peripheral device enumeration command detected.
+  priority: WARNING
+  tags: [host, container, device, hardware, mitre_discovery, peripheral_device_discovery, T1120]
