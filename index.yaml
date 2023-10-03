@@ -1,0 +1,15 @@
+- name: falco_extended_rules
+  type: rulesfile
+  registry: ghcr.io
+  repository: CloudDefenseAI/falco_extended_rules/ruleset/falco_extended_rules
+  description: Extended Falco rules developed by CloudDefense.ai
+  home: https://github.com/CloudDefenseAI/falco_extended_rules/tree/master/rules
+  keywords:
+    - mitre
+    - clouddefense
+  license: Apache-2.0
+  maintainers:
+    - email: contact@clouddefense.ai
+      name: CloudDefenseAI
+  sources:
+    - https://github.com/CloudDefenseAI/falco_extended_rules/tree/main/rules/docker_rules.yaml

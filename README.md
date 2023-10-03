@@ -21,7 +21,7 @@ Before you begin, make sure you have the following prerequisites in place:
 
 2. Falco Configuration: Set up your Falco configuration file (falco.yaml) according to your specific needs. Make sure you have configured Falco to load external rule files.
 
-## Installation
+## Local Installation
 To install and use the extended rule set for Falco runtime security, follow these steps:
 
 1. Clone the Repository: Start by cloning this GitHub repository to your local system: 
@@ -47,9 +47,23 @@ sudo systemctl restart falco
 # Restart Falco on non-systemd systems
 sudo service falco restart
 ```   
-##
+## Installation with Falcoctl
 
-### Below table shows the list of hosted rules in this repository: 
+## With falcoctl
+
+Add the index:
+```shell
+sudo falcoctl index add clouddefense https://raw.githubusercontent.com/CloudDefenseAI/falco_extended_rules/master/index.yaml
+```
+
+Install the rules:
+```shell
+sudo falcoctl artifact install falco_extended_rules:latest
+```
+
+## List of rules
+
+Below table shows the list of hosted rules in this repository:
 
 | S. No | Rule Name | Purpose | Corresponding Mitre |
 | -------- | -------- | -------- | -------- |
