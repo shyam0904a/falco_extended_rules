@@ -1,7 +1,4 @@
-import os
-import sys
 import ctypes
-import struct
 
 # Define the code to be injected
 code_to_inject = """
