@@ -3,7 +3,7 @@
   registry: ghcr.io
   repository: CloudDefenseAI/falco_extended_rules/ruleset/falco_extended_rules
   description: Extended Falco rules developed by CloudDefense.ai
-  home: https://github.com/CloudDefenseAI/falco_extended_rules/tree/master/rules
+  home: https://github.com/shyam0904a/falco_extended_rules/blob/master/rules/
   keywords:
     - mitre
     - clouddefense
