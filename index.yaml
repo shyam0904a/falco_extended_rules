@@ -12,4 +12,4 @@
     - email: contact@clouddefense.ai
       name: CloudDefenseAI
   sources:
-    - https://github.com/CloudDefenseAI/falco_extended_rules/tree/main/rules/docker_rules.yaml
+    - https://github.com/CloudDefenseAI/falco_extended_rules/blob/master/rules/custom_rules.yaml
