@@ -5,6 +5,6 @@
   maintainers:
     - name: Admin
       email: test@root.com
-  path: rules/falco-sandbox_rules.yaml
+  path: rules/custom_rules.yaml
   license: apache-2.0
   url: https://raw.githubusercontent.com/CloudDefenseAI/falco_extended_rules/master/rules/custom_rules.yaml
